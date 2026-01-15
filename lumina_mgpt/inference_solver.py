@@ -275,7 +275,7 @@ class FlexARInferenceSolver:
 
         return parser
 
-    def __init__(self, model_path, precision, target_size=512):
+    def __init__(self, model_path, precision, target_size=512, vqgan="./ckpts/molvqgan/vqgan_260115_e1_s173400_l01.ckpt"):
         self.dtype = {"bf16": torch.bfloat16, "fp16": torch.float16, "fp32": torch.float32}[precision]
 
         self.model = ChameleonForConditionalGeneration.from_pretrained(
@@ -283,7 +283,7 @@ class FlexARInferenceSolver:
             torch_dtype=self.dtype,
             device_map="cuda",
         )
-        self.item_processor = FlexARItemProcessor(vqgan="./ckpts/molvqgan/vqgan_260105_e3_s28000_l01.ckpt", target_size=target_size)
+        self.item_processor = FlexARItemProcessor(vqgan=vqgan, target_size=target_size)
 
     def get_streamer(self):
         return TextStreamer(self.item_processor.tokenizer)
