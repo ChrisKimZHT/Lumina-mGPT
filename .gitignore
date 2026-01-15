@@ -1,3 +1,8 @@
+lumina_mgpt/ckpts
+lumina_mgpt/dataset
+lumina_mgpt/output
+lumina_mgpt/xllmx_data_cache
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
