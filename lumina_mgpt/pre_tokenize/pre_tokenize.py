@@ -15,11 +15,12 @@ from data.item_processor import FlexARItemProcessor
 class ItemProcessor(FlexARItemProcessor):
     def __init__(
         self,
-        tokenizer="Alpha-VLLM/Lumina-mGPT-7B-768",
+        tokenizer,
+        vqgan,
         conv_template=Conversation,
-        target_size=512,
+        target_size=256,
     ):
-        super().__init__(tokenizer, conv_template, target_size)
+        super().__init__(tokenizer, vqgan, conv_template, target_size)
         print(self.crop_size_list)
 
     def process_item(self, raw_item, training_mode=False, out_flatten=True):
@@ -60,10 +61,28 @@ if __name__ == "__main__":
         "--out_dir",
         type=str,
     )
-    parser.add_argument("--target_size", type=int, default=512)
+    parser.add_argument(
+        "--target_size",
+        type=int,
+        default=256,
+    )
+    parser.add_argument(
+        "--tokenizer",
+        type=str,
+        default="/home/public_space/zhangxiaohong/public_user/Lumina-mGPT-7B-768",
+    )
+    parser.add_argument(
+        "--vqgan",
+        type=str,
+        default="./ckpts/molvqgan/vqgan_260115_e1_s173400_l01.ckpt",
+    )
     args = parser.parse_args()
 
-    item_processor = ItemProcessor(target_size=args.target_size)
+    item_processor = ItemProcessor(
+        tokenizer=args.tokenizer,
+        vqgan=args.vqgan,
+        target_size=args.target_size
+    )
 
     with open(args.in_filename) as f:
         ori_contents = json.load(f)

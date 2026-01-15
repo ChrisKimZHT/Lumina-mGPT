@@ -105,7 +105,7 @@ class LLMImageStartTriggeredUnbatchedClassifierFreeGuidanceLogitsProcessor(Logit
         elif num_image_start_tokens == num_image_end_tokens + 1:
             if self.image_start_token_id_index is None:
                 self.image_start_token_id_index = torch.where(input_ids[0] == self.image_start_token_id)[0][-1].item()
-            new_token_num = len(input_ids[0][self.image_start_token_id_index + 1 :])
+            new_token_num = len(input_ids[0][self.image_start_token_id_index + 1:])
             if new_token_num >= 2:
                 if self.h_latent_dim is None or self.w_latent_dim is None:
                     h_grids, w_grids = (
@@ -187,7 +187,7 @@ class MultiModalLogitsProcessor(LogitsProcessor):
                 print(self.image_start_token_id_index)
                 self.image_start_token_id_index = torch.where(input_ids[0] == self.image_start_token_id)[0][-1].item()
 
-            new_token_num = len(input_ids[0][self.image_start_token_id_index + 1 :])
+            new_token_num = len(input_ids[0][self.image_start_token_id_index + 1:])
             # print(f"num new tokens: {new_token_num}")
             if new_token_num >= 2:
                 if self.h_latent_dim is None or self.w_latent_dim is None:
@@ -199,7 +199,7 @@ class MultiModalLogitsProcessor(LogitsProcessor):
                     self.h_latent_dim, self.w_latent_dim = h_grids * 2, w_grids * 2
                     print(f"h_latent_dim: {self.h_latent_dim}, w_latent_dim: {self.w_latent_dim}")
 
-                tokens = input_ids[0][self.image_start_token_id_index + 3 :]
+                tokens = input_ids[0][self.image_start_token_id_index + 3:]
                 if (len(tokens) + 1) % (self.w_latent_dim + 1) == 0:
                     new_line_constrained_scores = torch.full_like(scores, -math.inf)
                     new_line_constrained_scores[:, self.image_next_line_token_id] = 0
@@ -283,7 +283,7 @@ class FlexARInferenceSolver:
             torch_dtype=self.dtype,
             device_map="cuda",
         )
-        self.item_processor = FlexARItemProcessor(target_size=target_size)
+        self.item_processor = FlexARItemProcessor(vqgan="./ckpts/molvqgan/vqgan_260105_e3_s28000_l01.ckpt", target_size=target_size)
 
     def get_streamer(self):
         return TextStreamer(self.item_processor.tokenizer)

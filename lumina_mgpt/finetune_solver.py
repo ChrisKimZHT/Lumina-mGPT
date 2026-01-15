@@ -88,8 +88,8 @@ class Solver(FinetuneSolverBase):
     def _make_and_save_starting_point(self, save_path: str) -> None:
 
         pretrained_name = {
-            "7B": "Alpha-VLLM/Chameleon_7B_mGPT",
-            "34B": "Alpha-VLLM/Chameleon_34B_mGPT",
+            "7B": "/home/public_space/zhangxiaohong/public_user/Lumina-mGPT-7B-768",
+            # "34B": "Alpha-VLLM/Chameleon_34B_mGPT",
         }[self.args.model_size]
 
         model = ChameleonXLLMXForConditionalGeneration.from_pretrained(

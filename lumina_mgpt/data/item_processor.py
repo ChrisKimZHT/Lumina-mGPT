@@ -61,7 +61,8 @@ class FlexARItemProcessor(MMConvItemProcessor):
 
     def __init__(
         self,
-        tokenizer="Alpha-VLLM/Lumina-mGPT-7B-768",
+        tokenizer="/home/public_space/zhangxiaohong/public_user/Lumina-mGPT-7B-768",
+        vqgan="./ckpts/chameleon/tokenizer/vqgan.ckpt",
         conv_template=Conversation,
         target_size=512,
     ):
@@ -90,7 +91,7 @@ class FlexARItemProcessor(MMConvItemProcessor):
         self.chameleon_ori_translation = chameleon_vae_ori.VocabTranslation(self.chameleon_ori_vocab, device="cuda")
         self.chameleon_ori_image_tokenizer = chameleon_vae_ori.ImageTokenizer(
             cfg_path="./ckpts/chameleon/tokenizer/vqgan.yaml",
-            ckpt_path="./ckpts/chameleon/tokenizer/vqgan.ckpt",
+            ckpt_path=vqgan,
             device="cuda",
         )
 
