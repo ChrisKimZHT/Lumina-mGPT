@@ -1,4 +1,6 @@
 import argparse
+import csv
+import datetime
 import json
 import os
 import random
@@ -111,7 +113,15 @@ def draw_aligned_molecules(reactant_smiles_raw: str, product_smiles: str) -> tup
     return [reactant_img, product_img]
 
 
-def gen_one(item: dict) -> dict | None:
+def gen_one(item: dict, out_filename: str) -> dict | None:
+    split = "unknown"
+    if "train" in out_filename:
+        split = "train"
+    elif "test" in out_filename:
+        split = "test"
+    elif "val" in out_filename:
+        split = "val"
+
     product_img_path = []
     reactant_img_path = []
 
@@ -123,8 +133,10 @@ def gen_one(item: dict) -> dict | None:
             return None
     except:
         return None
-    product_img_path = os.path.join("dataset", "images", f"product_{item['idx']}.png")
-    reactant_img_path = os.path.join("dataset", "images", f"reactant_{item['idx']}.png")
+
+    product_img_path = os.path.join(args.data_output, "images", split, f"{item['idx']}_product.png")
+    reactant_img_path = os.path.join(args.data_output, "images", split, f"{item['idx']}_reactant.png")
+
     product_img.save(product_img_path)
     reactant_img.save(reactant_img_path)
 
@@ -152,8 +164,15 @@ def gen_one(item: dict) -> dict | None:
 def gen_data(data_split: list, out_filename: str):
     results = []
 
+    if not os.path.exists(os.path.join(args.data_output, "images", "train")):
+        os.makedirs(os.path.join(args.data_output, "images", "train"))
+    if not os.path.exists(os.path.join(args.data_output, "images", "test")):
+        os.makedirs(os.path.join(args.data_output, "images", "test"))
+    if not os.path.exists(os.path.join(args.data_output, "images", "val")):
+        os.makedirs(os.path.join(args.data_output, "images", "val"))
+
     with ProcessPoolExecutor(max_workers=args.workers) as executor:
-        futures = {executor.submit(gen_one, item): item for item in data_split}
+        futures = {executor.submit(gen_one, item, out_filename): item for item in data_split}
         for future in tqdm(as_completed(futures), total=len(futures), dynamic_ncols=True):
             result = future.result()
             if result is None:
@@ -164,40 +183,55 @@ def gen_data(data_split: list, out_filename: str):
         json.dump(results, f, indent=2, ensure_ascii=False)
 
 
+def clean_atom_mapping(smiles: str) -> str:
+    mol = Chem.MolFromSmiles(smiles)
+    for atom in mol.GetAtoms():
+        atom.SetAtomMapNum(0)
+    return Chem.MolToSmiles(mol)
+
+
+def prepare_raw_data(file_path: str) -> list:
+    with open(file_path, "r") as f:
+        reader = csv.DictReader(f)
+        data_list = [row for row in reader]
+
+    results = []
+    for idx, item in enumerate(tqdm(data_list)):
+        origin = item["id"]
+        reactants, reagents, production = item["reactants>reagents>production"].split(">")
+        reactants = clean_atom_mapping(reactants)
+        production = clean_atom_mapping(production)
+        instruction = random.choice(INSTRUCTION_LIST)
+
+        results.append({
+            "idx": idx,
+            "origin": origin,
+            "instruction": instruction,
+            "input": production,
+            "output": reactants
+        })
+
+    return results
+
+
 def main():
     random.seed(args.seed)
 
-    with open("./dataset/uspto50k.tab", "r") as f:
-        lines = f.readlines()
+    train_data = prepare_raw_data(os.path.join(args.data_input, "uspto50k_train.csv"))
+    test_data = prepare_raw_data(os.path.join(args.data_input, "uspto50k_test.csv"))
+    val_data = prepare_raw_data(os.path.join(args.data_input, "uspto50k_val.csv"))
 
-    data_list = []
-    for line in lines[1:]:
-        reactant, product, _ = line.strip().split("\t")
-        reactant = reactant.strip("\"")
-        product = product.strip("\"")
-        instruction = random.choice(INSTRUCTION_LIST)
-        data_list.append({
-            "idx": len(data_list),
-            "instruction": instruction,
-            "input": product,
-            "output": reactant
-        })
-    random.shuffle(data_list)
-
-    test_ratio = 0.1
-    num_test = int(len(data_list) * test_ratio)
-    train_data, test_data = data_list[num_test:], data_list[:num_test]
-
-    os.makedirs(os.path.join("dataset", "images"), exist_ok=True)
-
-    gen_data(train_data, "./dataset/uspto50k_train.json")
-    gen_data(test_data, "./dataset/uspto50k_test.json")
+    gen_data(train_data, os.path.join(args.data_output, "uspto50k_train.json"))
+    gen_data(test_data, os.path.join(args.data_output, "uspto50k_test.json"))
+    gen_data(val_data, os.path.join(args.data_output, "uspto50k_val.json"))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--workers", type=int, default=os.cpu_count())
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--workers", type=int, default=os.cpu_count())
+    parser.add_argument("--data-input", type=str, default="./dataset/raw")
+    parser.add_argument("--data-output", type=str, default=f"./dataset/uspto50k_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}")
     parser.add_argument("--size", type=int, default=256)
     args = parser.parse_args()
     main()
